@@ -36,6 +36,8 @@ def main():
     LEARNING_RATE = 2e-4
     WEIGHT_DECAY = 1e-6
     NUM_WORKERS = 2
+    CHECK_POINT = "checkpoint.pt"
+
 
     # define model and move to GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,9 +52,9 @@ def main():
     progress = tqdm(range(num_epochs))
 
     # load from checkpoint if it exists
-    if os.path.exists("checkpoint.pt"):
+    if os.path.exists(CHECK_POINT):
         print("Loading from checkpoint...")
-        cp = torch.load("checkpoint.pt", weights_only=False)
+        cp = torch.load(CHECK_POINT, weights_only=False)
         model.load_state_dict(cp["model_state_dict"])
         opt.load_state_dict(cp["optimizer_state_dict"])
         progress = tqdm(range(cp["epoch"], num_epochs))
