@@ -14,7 +14,6 @@ from customdataset import CustomDataset
 import pandas as pd
 from glob import glob
 import matplotlib.pyplot as plt
-import re
 
 
 class Augmentation:
@@ -37,6 +36,26 @@ class Augmentation:
         
     def __call__(self, x):
         return self.augment(x), self.augment(x)
+    
+def custom_collate_fn(batch):
+    imgs = [item[0] for item in batch]
+    labels = [item[1] for item in batch]
+    
+    img1 = torch.stack([img[0] for img in imgs])
+    img2 = torch.stack([img[1] for img in imgs])
+    
+    return (img1, img2), labels
+    
+def check_image_dataset(all_img_path, transforms):
+    tempdataset = CustomDataset(all_img_path, [], train_mode=False, transforms=transforms)
+    x1, x2 = tempdataset.__getitem__(1)
+    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
+
+    ax1.imshow(x1.permute(1,2,0).numpy()) # [channel, height, width] -> [height, width, channel]로 변경해서 이미지로 출력 (tensor형태에서 이미지 출력을 위한 형태로 차원 변경)
+    ax1.set_title("x1")
+    ax2.imshow(x2.permute(1,2,0).numpy())
+    ax2.set_title("x2")
+    plt.show()
 
 def main():
     NUM_EPOCHS = 500
@@ -66,15 +85,7 @@ def main():
     all_img_path.sort(key=lambda x: int(os.path.basename(x).split(".")[0])) # 파일명이 1213.png 형태이므로 .앞부분의 숫자만 가져와서 숫자형태로 바꾼 뒤 정렬
 
     # 정상적으로 데이터셋이 만들어졌는지 테스트
-    tempdataset = CustomDataset(all_img_path, [], train_mode=False, transforms=Augmentation())
-    x1, x2 = tempdataset.__getitem__(1)
-    fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
-
-    ax1.imshow(x1.permute(1,2,0).numpy()) # [channel, height, width] -> [height, width, channel]로 변경해서 이미지로 출력 (tensor형태에서 이미지 출력을 위한 형태로 차원 변경)
-    ax1.set_title("x1")
-    ax2.imshow(x2.permute(1,2,0).numpy())
-    ax2.set_title("x2")
-    plt.show()
+    check_image_dataset(all_img_path, transforms=Augmentation())
 
     # Train과 Validation set 분할
     train_len = int(len(all_img_path)*0.8)
@@ -90,12 +101,11 @@ def main():
     print("validation set 길이 : ", val_len)
 
     train_dataset = CustomDataset(train_img_path, train_label, train_mode=False, transforms=Augmentation())
-    val_dataset = CustomDataset(val_img_path, val_label, train_mode=False, transforms=Augmentation())
-
+    #val_dataset = CustomDataset(val_img_path, val_label, train_mode=False, transforms=Augmentation())
 
     num_epochs, batch_size = NUM_EPOCHS, BATCH_SIZE
-    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=NUM_WORKERS)
-    val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=NUM_WORKERS)
+    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=NUM_WORKERS, collate_fn=custom_collate_fn)
+    #val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=NUM_WORKERS)
     opt = Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     progress = tqdm(range(num_epochs))
 
