@@ -39,7 +39,9 @@ class Augmentation:
     
 def check_image_dataset(all_img_path, transforms):
     tempdataset = CustomDataset(all_img_path, [], train_mode=False, transforms=transforms)
-    x1, x2 = tempdataset.__getitem__(1)
+    
+    # x1, x2 = tempdataset.__getitem__(1)
+    (x1, x2), label = tempdataset.__getitem__(1)
     fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10,5))
 
     ax1.imshow(x1.permute(1,2,0).numpy()) # [channel, height, width] -> [height, width, channel]로 변경해서 이미지로 출력 (tensor형태에서 이미지 출력을 위한 형태로 차원 변경)
