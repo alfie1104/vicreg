@@ -34,7 +34,7 @@ class CustomDataset(Dataset):
             label = self.label_list[index]
             return image, label
         else:
-            return image
+            return image, ""
         
     def __len__(self):
         return len(self.img_path_list)

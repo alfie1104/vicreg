@@ -24,7 +24,7 @@ class Augmentation:
     """
     augment = transforms.Compose([
         transforms.ToTensor(),
-        transforms.RandomResizedCrop((1000,1000), scale=(0.3, 1.0)), # resnet18 모델에 맞는 크기로 이미지 크기 조정 필요 # scale에 지정한 범위내의 크기로 자름
+        transforms.RandomResizedCrop((512,512), scale=(0.3, 1.0)), # resnet18 모델에 맞는 크기로 이미지 크기 조정 필요 # scale에 지정한 범위내의 크기로 자름
         #transforms.RandomHorizontalFlip(0.5),
         #transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.2, 0.1)], p=0.8),
         #transforms.RandomGrayscale(0.2),
@@ -36,15 +36,6 @@ class Augmentation:
         
     def __call__(self, x):
         return self.augment(x), self.augment(x)
-    
-def custom_collate_fn(batch):
-    imgs = [item[0] for item in batch]
-    labels = [item[1] for item in batch]
-    
-    img1 = torch.stack([img[0] for img in imgs])
-    img2 = torch.stack([img[1] for img in imgs])
-    
-    return (img1, img2), labels
     
 def check_image_dataset(all_img_path, transforms):
     tempdataset = CustomDataset(all_img_path, [], train_mode=False, transforms=transforms)
@@ -104,7 +95,7 @@ def main():
     #val_dataset = CustomDataset(val_img_path, val_label, train_mode=False, transforms=Augmentation())
 
     num_epochs, batch_size = NUM_EPOCHS, BATCH_SIZE
-    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=NUM_WORKERS, collate_fn=custom_collate_fn)
+    train_dataloader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=NUM_WORKERS)
     #val_dataloader = DataLoader(val_dataset, batch_size, shuffle=False, num_workers=NUM_WORKERS)
     opt = Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     progress = tqdm(range(num_epochs))
