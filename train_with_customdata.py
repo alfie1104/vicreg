@@ -24,7 +24,7 @@ class Augmentation:
     """
     augment = transforms.Compose([
         transforms.ToTensor(),
-        transforms.RandomResizedCrop((512,512), scale=(0.3, 1.0)), # resnet18 모델에 맞는 크기로 이미지 크기 조정 필요 # scale에 지정한 범위내의 크기로 자름
+        transforms.RandomResizedCrop((32,32), scale=(0.3, 1.0)), # resnet18 모델에 맞는 크기로 이미지 크기 조정 필요 # scale에 지정한 범위내의 크기로 자름
         #transforms.RandomHorizontalFlip(0.5),
         #transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.2, 0.1)], p=0.8),
         #transforms.RandomGrayscale(0.2),
@@ -57,7 +57,7 @@ def main():
     WEIGHT_DECAY = 1e-6
     NUM_WORKERS = 2
     # CHECK_POINT = "checkpoint_500epoch.pt"
-    CHECK_POINT = "checkpoint123.pt"
+    CHECK_POINT = os.path.join("./saved_models/", "VICReg_Custom_RN18_P128_LR2e4_WD1e6_B256_checkpoint_400_20240816.pt")
 
 
     # [Step1] define model and move to GPU
@@ -105,7 +105,7 @@ def main():
     # load from checkpoint if it exists
     if os.path.exists(CHECK_POINT):
         print("Loading from checkpoint...")
-        cp = torch.load(CHECK_POINT, weights_only=False)
+        cp = torch.load(CHECK_POINT, map_location=device, weights_only=False)
         model.load_state_dict(cp["model_state_dict"])
         opt.load_state_dict(cp["optimizer_state_dict"])
         progress = tqdm(range(cp["epoch"], num_epochs))
