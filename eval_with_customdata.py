@@ -10,11 +10,39 @@ from customdataset import CustomDataset
 import pandas as pd
 from glob import glob
 
+# 코사인 유사도 계산을 위한 라이브러리
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
 BATCH_SIZE = 256
 LEARNING_RATE = 0.02
 WEIGHT_DECAY = 1e-6
 #CHECK_POINT = "checkpoint_500epoch.pt"
 CHECK_POINT = os.path.join("./saved_models/", "VICReg_Custom_RN18_P128_LR2e4_WD1e6_B256_checkpoint_400_20240816.pt")
+
+def find_similar_rows(df, target_row_index, top_k = 1):
+    # 특정 열만 선택 (Image Name 열 제외)
+    feature_columns = [col for col in df.columns if not col.startswith('Image')]
+    features = df[feature_columns].values
+
+    # 타겟 행의 특징 벡터
+    target_vector = features[target_row_index].reshape(1, -1)
+    
+    # 모든 행과의 코사인 유사도 계산
+    similarities = cosine_similarity(target_vector, features)
+
+    # 유사도가 가장 높은 top_k개의 인덱스 찾기
+    similarities = similarities[0]
+    similarities[target_row_index] = -1 # 타겟 행 제외
+
+    most_similar_indices = np.argsort(similarities)[::-1][:top_k]
+
+    # 결과를 (인덱스, 유사도) 튜플의 리스트로 반환
+    results = [(idx, similarities[idx]) for idx in most_similar_indices]
+
+    return results
+    
+
 
 # model checkpoint 불러오기 및 model을 GPU에 할당
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,7 +63,8 @@ if os.path.exists(CHECK_POINT):
     # data augmentations used to regularize the linear layer
     augment = transforms.Compose([
         transforms.ToTensor(),
-        transforms.RandomResizedCrop((32,32), scale=(0.3, 1.0)), # resnet18 모델에 맞는 크기로 이미지 크기 조정 필요 # scale에 지정한 범위내의 크기로 자름
+        #transforms.RandomResizedCrop((32,32), scale=(0.3, 1.0)), # resnet18 모델에 맞는 크기로 이미지 크기 조정 필요 # scale에 지정한 범위내의 크기로 자름
+        transforms.RandomResizedCrop((32,32), scale=(1.0, 1.0)), # 학습과 다르게 테스트 시점에는 이미즈 크기만 축소함
     ])
 
     # 이미지 데이터 획득
@@ -85,10 +114,18 @@ if os.path.exists(CHECK_POINT):
     columns = ['Image Name'] + [f"Feature_{i}" for i in range(projector_dim)]
     df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
 
-    # Excel 파일로 저장
-    output_dir = "./"
-    output_file = os.path.join(output_dir, "embeded_result.xlsx")
-    df_embeded_results.to_excel(output_file, index=False)
-    print(f"Results saved to {output_file}")
+    # 유사한 이미지 찾기 테스트
+    target_index = 50
+    top_k = 10
+    print(df_embeded_results["Image Name"][target_index])
+    results = find_similar_rows(df_embeded_results, target_index, top_k)
+    for idx, similarity in results:
+        print(df_embeded_results["Image Name"][idx], idx, similarity)
+
+    # # Excel 파일로 저장
+    # output_dir = "./"
+    # output_file = os.path.join(output_dir, "embeded_result.xlsx")
+    # df_embeded_results.to_excel(output_file, index=False)
+    # print(f"Results saved to {output_file}")
 else:
     print("Model checkpoint doesn't exist")
