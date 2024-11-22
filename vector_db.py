@@ -34,7 +34,7 @@ def save_embeded_image(data : pd.DataFrame):
         embeddings=embeddings,
         metadatas=metadatas
     )
-    print(f"Results saved to ChromaDB")
+    print(f"{len(ids)} Results saved to ChromaDB")
     
 
 

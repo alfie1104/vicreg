@@ -45,6 +45,7 @@ if os.path.exists(CHECK_POINT):
     # 이미지 데이터 획득
     data_dir = "D:\\project_javascript\\vt-image-downloader"
     img_list = pd.read_excel(os.path.join(data_dir, "vt-image-list.xlsx"))
+    img_list = img_list[['index','dbLctn','idVt','hddnRvsn']].rename(columns={"dbLctn":"DB_LCTN", "idVt":"ID_VT","hddnRvsn":"HDDN_RVSN"}) #img_list = img_list.drop('error', axis=1) 이렇게 해도 되지만 직관성을 위해 직접 칼럼명을 지정하였음
 
     # 이미지 폴더에서 데이터 로드
     all_img_path = []
@@ -59,10 +60,12 @@ if os.path.exists(CHECK_POINT):
 
     # 이미지 데이터들을 model에 넣어서 벡터로 변환
     # 변환 결과(projector_dim의 차원)를 Vector DB에 기록
-    embeded_results = [] # 변환 결과를 저장할 리스트
+
+    columns = ['image_index'] + [f"feature_{i}" for i in range(projector_dim)]
 
     with torch.no_grad():
         for i, (image, _) in enumerate(dataloader):
+            embeded_results = [] # 변환 결과를 저장할 리스트
 
             image = image.to(device)
             encoder_out = model.encoder(image)
@@ -79,18 +82,16 @@ if os.path.exists(CHECK_POINT):
                 image_index = os.path.basename(img_path).split(".")[0]
                 embeded_results.append([image_index] + output.tolist())
     
-    # 결과를 Data Frame으로 변환
-    columns = ['image_index'] + [f"feature_{i}" for i in range(projector_dim)]
-    df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
+            # 결과를 Data Frame으로 변환
+            df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
 
-    # img_list(index, dbLctn, idVt, hddnRvsn, error 가 기록된 데이터 프레임)와 df_embeded_results를 병합
-    img_list = img_list[['index','dbLctn','idVt','hddnRvsn']].rename(columns={"dbLctn":"DB_LCTN", "idVt":"ID_VT","hddnRvsn":"HDDN_RVSN"}) #img_list = img_list.drop('error', axis=1) 이렇게 해도 되지만 직관성을 위해 직접 칼럼명을 지정하였음
-
-    df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
-    
-    df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
-    df_embeded_results = df_embeded_results.drop('image_index', axis=1)
-    df_embeded_results = df_embeded_results.drop('index', axis=1)
-    save_embeded_image(df_embeded_results)
+            # img_list(index, dbLctn, idVt, hddnRvsn, error 가 기록된 데이터 프레임)와 df_embeded_results를 병합
+            df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
+            
+            df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
+            df_embeded_results = df_embeded_results.drop('image_index', axis=1)
+            df_embeded_results = df_embeded_results.drop('index', axis=1)
+            print(f"{i+1}th batch datas are saving...")
+            save_embeded_image(df_embeded_results)
 else:
     print("Model checkpoint doesn't exist")

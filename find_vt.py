@@ -9,7 +9,7 @@ from customdataset import CustomDataset
 import pandas as pd
 from glob import glob
 
-from vector_db import save_embeded_image, search_similar_vt_image
+from vector_db import search_similar_vt_image
 
 
 BATCH_SIZE = 256
