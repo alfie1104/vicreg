@@ -5,3 +5,4 @@ cifar-10-python.tar.gz
 venv
 *.pt
 *.xlsx
+chroma_db/

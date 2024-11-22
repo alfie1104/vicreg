@@ -9,7 +9,8 @@ from customdataset import CustomDataset
 import pandas as pd
 from glob import glob
 
-from utils import find_similar_rows
+from vector_db import save_embeded_image, search_similar_vt_image
+
 
 BATCH_SIZE = 256
 LEARNING_RATE = 0.02
@@ -50,19 +51,18 @@ if os.path.exists(CHECK_POINT):
     all_img_path.extend(glob(os.path.join(data_dir,"images","*.png")))
     all_img_path.sort(key=lambda x: int(os.path.basename(x).split(".")[0])) # 파일명이 1213.png 형태이므로 .앞부분의 숫자만 가져와서 숫자형태로 바꾼 뒤 정렬
 
-    # Test용 데이터 설정
-    train_len = int(len(all_img_path)*0.8)
-    test_len = int(len(all_img_path)*0.2)
+    # 데이터 loader 구성(BATCH_SIZE 만큼 한번에 읽어오도록)
+    data_len = len(all_img_path)
 
-    test_img_path = all_img_path[train_len:]
-    test_dataset = CustomDataset(test_img_path, [], train_mode=False, transforms=augment)
-    test_dataloader = DataLoader(test_dataset, BATCH_SIZE, shuffle=False)
+    dataset = CustomDataset(all_img_path, [], train_mode=False, transforms=augment)
+    dataloader = DataLoader(dataset, BATCH_SIZE, shuffle=False)
 
-    # Test용 이미지 데이터들을 model에 넣어서 벡터로 변환
+    # 이미지 데이터들을 model에 넣어서 벡터로 변환
+    # 변환 결과(projector_dim의 차원)를 Vector DB에 기록
     embeded_results = [] # 변환 결과를 저장할 리스트
 
     with torch.no_grad():
-        for i, (image, _) in enumerate(test_dataloader):
+        for i, (image, _) in enumerate(dataloader):
 
             image = image.to(device)
             encoder_out = model.encoder(image)
@@ -75,24 +75,41 @@ if os.path.exists(CHECK_POINT):
 
             # 결과를 리스트에 추가
             for j, output in enumerate(np_projector_out):
-                img_path = test_img_path[i * BATCH_SIZE + j]
-                img_name = os.path.basename(img_path)
-                embeded_results.append([img_name] + output.tolist())
+                img_path = all_img_path[i * BATCH_SIZE + j]
+                image_index = os.path.basename(img_path).split(".")[0]
+                embeded_results.append([image_index] + output.tolist())
 
             if i == 1:
                 # 테스트로 256 * 2개만 저장
                 break
     
     # 결과를 Data Frame으로 변환
-    columns = ['Image Name'] + [f"Feature_{i}" for i in range(projector_dim)]
+    columns = ['image_index'] + [f"feature_{i}" for i in range(projector_dim)]
     df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
+
+    # img_list(index, dbLctn, idVt, hddnRvsn, error 가 기록된 데이터 프레임)와 df_embeded_results를 병합
+    img_list = img_list[['index','dbLctn','idVt','hddnRvsn']].rename(columns={"dbLctn":"DB_LCTN", "idVt":"ID_VT","hddnRvsn":"HDDN_RVSN"}) #img_list = img_list.drop('error', axis=1) 이렇게 해도 되지만 직관성을 위해 직접 칼럼명을 지정하였음
+
+    df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
+    
+    df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
+    df_embeded_results = df_embeded_results.drop('image_index', axis=1)
+    df_embeded_results = df_embeded_results.drop('index', axis=1)
 
     # 유사한 이미지 찾기 테스트
     target_index = 50
     top_k = 10
-    print(df_embeded_results["Image Name"][target_index])
-    results = find_similar_rows(df_embeded_results, target_index, top_k)
-    for idx, similarity in results:
-        print(df_embeded_results["Image Name"][idx], idx, similarity)
+    
+    results = search_similar_vt_image(
+        query_embedding=df_embeded_results.iloc[target_index, 3:].values.tolist(),
+        tok_k=10, 
+        db_lctn=df_embeded_results.iloc[target_index]["DB_LCTN"],
+        id_vt=df_embeded_results.iloc[target_index]["ID_VT"],
+        hddn_rvsn=df_embeded_results.iloc[target_index]["HDDN_RVSN"]
+    )
+
+    print(results)
+
+    
 else:
     print("Model checkpoint doesn't exist")
