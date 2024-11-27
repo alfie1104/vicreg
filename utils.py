@@ -36,8 +36,8 @@ def find_similar_rows(df : pd.DataFrame, target_row_index : int, top_k = 1):
     list[tuple[Any, Any]]
         top_k개의 [데이터 인덱스 번호, 유사도]를 갖는 list를 반환
     """
-     # 특정 열만 선택 (Image Name 열 제외)
-    feature_columns = [col for col in df.columns if not col.startswith('Image')]
+     # 특정 열만 선택 (image_index, DB_LCTN, ID_VT, HDDN_RVSN 열 제외)
+    feature_columns = [col for col in df.columns if not col.startswith('image') and not col.startswith('DB') and not col.startswith('ID') and not col.startswith('HDDN')]
     features = df[feature_columns].values
 
     # 타겟 행의 특징 벡터
