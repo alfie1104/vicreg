@@ -105,26 +105,26 @@ if os.path.exists(CHECK_POINT):
     
     # Excel 파일로 저장
     output_dir = "./"
-    output_file = os.path.join(output_dir, "embeded_result.xlsx")
+    output_file = os.path.join(output_dir, "embeded_result2.xlsx")
     df_embeded_results.to_excel(output_file, index=False)
     print(f"Embeding results saved to {output_file}")
 
-    if is_using_db:
-        df_embeded_results = df_embeded_results.drop('image_index', axis=1)
-        results = search_similar_vt_image(
-            query_embedding=df_embeded_results.iloc[target_index, 3:].values.tolist(),
-            tok_k=10, 
-            db_lctn=df_embeded_results.iloc[target_index]["DB_LCTN"],
-            id_vt=df_embeded_results.iloc[target_index]["ID_VT"],
-            hddn_rvsn=df_embeded_results.iloc[target_index]["HDDN_RVSN"]
-        )
-        print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}")
-        print(results)
-    else:
-        print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}, {df_embeded_results["image_index"][target_index]}")
-        results = find_similar_rows(df_embeded_results, target_index, top_k)
-        for idx, similarity in results:
-            current = df_embeded_results.iloc[idx]
-            print(f"{current["DB_LCTN"]}-{current["ID_VT"]}-{current["HDDN_RVSN"]}, {current["image_index"]}, {similarity}")    
+    # if is_using_db:
+    #     df_embeded_results = df_embeded_results.drop('image_index', axis=1)
+    #     results = search_similar_vt_image(
+    #         query_embedding=df_embeded_results.iloc[target_index, 3:].values.tolist(),
+    #         tok_k=10, 
+    #         db_lctn=df_embeded_results.iloc[target_index]["DB_LCTN"],
+    #         id_vt=df_embeded_results.iloc[target_index]["ID_VT"],
+    #         hddn_rvsn=df_embeded_results.iloc[target_index]["HDDN_RVSN"]
+    #     )
+    #     print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}")
+    #     print(results)
+    # else:
+    #     print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}, {df_embeded_results["image_index"][target_index]}")
+    #     results = find_similar_rows(df_embeded_results, target_index, top_k)
+    #     for idx, similarity in results:
+    #         current = df_embeded_results.iloc[idx]
+    #         print(f"{current["DB_LCTN"]}-{current["ID_VT"]}-{current["HDDN_RVSN"]}, {current["image_index"]}, {similarity}")    
 else:
     print("Model checkpoint doesn't exist")

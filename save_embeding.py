@@ -63,25 +63,75 @@ if os.path.exists(CHECK_POINT):
 
     columns = ['image_index'] + [f"feature_{i}" for i in range(projector_dim)]
 
+    is_using_db = False
+
     with torch.no_grad():
-        for i, (image, _) in enumerate(dataloader):
+        if is_using_db:
+            for i, (image, _) in enumerate(dataloader):
+                embeded_results = [] # 변환 결과를 저장할 리스트
+
+                image = image.to(device)
+                encoder_out = model.encoder(image)
+                # print(encoder_out.shape) # torch.Size([256, 512])
+                projector_out = model.projector(encoder_out)
+                # print(projector_out.shape) # torch.Size([256, 1024])
+
+                # tensor형태의 projector_out을 numpy 배열로 변환
+                np_projector_out = projector_out.cpu().numpy()
+
+                # 결과를 리스트에 추가
+                for j, output in enumerate(np_projector_out):
+                    img_path = all_img_path[i * BATCH_SIZE + j]
+                    image_index = os.path.basename(img_path).split(".")[0]
+                    embeded_results.append([image_index] + output.tolist())
+        
+                # 결과를 Data Frame으로 변환
+                df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
+
+                # img_list(index, dbLctn, idVt, hddnRvsn, error 가 기록된 데이터 프레임)와 df_embeded_results를 병합
+                df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
+                
+                df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
+                df_embeded_results = df_embeded_results.drop('image_index', axis=1)
+                df_embeded_results = df_embeded_results.drop('index', axis=1)
+                print(f"{i+1}th batch datas are saving...")
+                save_embeded_image(df_embeded_results)
+        else:
             embeded_results = [] # 변환 결과를 저장할 리스트
+            for i, (image, _) in enumerate(dataloader):
+                image = image.to(device)
+                encoder_out = model.encoder(image)
+                # print(encoder_out.shape) # torch.Size([256, 512])
+                projector_out = model.projector(encoder_out)
+                # print(projector_out.shape) # torch.Size([256, 1024])
 
-            image = image.to(device)
-            encoder_out = model.encoder(image)
-            # print(encoder_out.shape) # torch.Size([256, 512])
-            projector_out = model.projector(encoder_out)
-            # print(projector_out.shape) # torch.Size([256, 1024])
+                # tensor형태의 projector_out을 numpy 배열로 변환
+                np_projector_out = projector_out.cpu().numpy()
 
-            # tensor형태의 projector_out을 numpy 배열로 변환
-            np_projector_out = projector_out.cpu().numpy()
+                # 결과를 리스트에 추가
+                for j, output in enumerate(np_projector_out):
+                    img_path = all_img_path[i * BATCH_SIZE + j]
+                    image_index = os.path.basename(img_path).split(".")[0]
+                    embeded_results.append([image_index] + output.tolist())
+                
+                print(f"batch {i+1} is being processed")
+                if i != 0 and i % 10 == 0:
+                    # 결과를 Data Frame으로 변환
+                    df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
 
-            # 결과를 리스트에 추가
-            for j, output in enumerate(np_projector_out):
-                img_path = all_img_path[i * BATCH_SIZE + j]
-                image_index = os.path.basename(img_path).split(".")[0]
-                embeded_results.append([image_index] + output.tolist())
-    
+                    # img_list(index, dbLctn, idVt, hddnRvsn, error 가 기록된 데이터 프레임)와 df_embeded_results를 병합
+                    df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
+                    
+                    df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
+                    df_embeded_results = df_embeded_results.drop('index', axis=1)
+                    print(f"{i+1}th batch datas are saving...")
+                    # Excel 파일로 저장
+                    output_dir = "./"
+                    output_file = os.path.join(output_dir, f"embeded_result_{i}.xlsx")
+                    df_embeded_results.to_excel(output_file, index=False)
+                    embeded_results = []
+                    print(f"Embeding results saved to {output_file}")
+            
             # 결과를 Data Frame으로 변환
             df_embeded_results = pd.DataFrame(embeded_results, columns=columns)
 
@@ -89,9 +139,12 @@ if os.path.exists(CHECK_POINT):
             df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
             
             df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
-            df_embeded_results = df_embeded_results.drop('image_index', axis=1)
             df_embeded_results = df_embeded_results.drop('index', axis=1)
-            print(f"{i+1}th batch datas are saving...")
-            save_embeded_image(df_embeded_results)
+            # Excel 파일로 저장
+            output_dir = "./embeded_result"
+            output_file = os.path.join(output_dir, f"embeded_result_99999999.xlsx")
+            df_embeded_results.to_excel(output_file, index=False)
+            embeded_results = []
+            print(f"Embeding results saved to {output_file}")
 else:
     print("Model checkpoint doesn't exist")
