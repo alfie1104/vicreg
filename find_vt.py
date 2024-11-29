@@ -10,7 +10,6 @@ import pandas as pd
 from glob import glob
 
 from vector_db import search_similar_vt_image
-from utils import find_similar_rows
 
 
 BATCH_SIZE = 256
@@ -81,9 +80,9 @@ if os.path.exists(CHECK_POINT):
                 embeded_results.append([image_index] + output.tolist())
             
             print(f"{i+1}th batch datas are being embeded...")
-            # if i == 1:
-            #     # 테스트로 256 * 2개만 저장
-            #     break
+            if i == 23:
+                # 테스트로 256 * 23개만 저장
+                break
     
     # 결과를 Data Frame으로 변환
     columns = ['image_index'] + [f"feature_{i}" for i in range(projector_dim)]
@@ -95,36 +94,22 @@ if os.path.exists(CHECK_POINT):
     df_embeded_results["image_index"] = df_embeded_results["image_index"].astype(int)
     
     df_embeded_results = pd.merge(img_list, df_embeded_results, left_on='index', right_on='image_index', how='inner')
+    df_embeded_results = df_embeded_results.drop('image_index', axis=1)
     df_embeded_results = df_embeded_results.drop('index', axis=1)
 
     # 유사한 이미지 찾기 테스트
-    target_index = 50
+    # target_index = 50
+    target_index = 5758
     top_k = 10
-    is_using_db = False
 
-    
-    # Excel 파일로 저장
-    output_dir = "./"
-    output_file = os.path.join(output_dir, "embeded_result2.xlsx")
-    df_embeded_results.to_excel(output_file, index=False)
-    print(f"Embeding results saved to {output_file}")
-
-    # if is_using_db:
-    #     df_embeded_results = df_embeded_results.drop('image_index', axis=1)
-    #     results = search_similar_vt_image(
-    #         query_embedding=df_embeded_results.iloc[target_index, 3:].values.tolist(),
-    #         tok_k=10, 
-    #         db_lctn=df_embeded_results.iloc[target_index]["DB_LCTN"],
-    #         id_vt=df_embeded_results.iloc[target_index]["ID_VT"],
-    #         hddn_rvsn=df_embeded_results.iloc[target_index]["HDDN_RVSN"]
-    #     )
-    #     print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}")
-    #     print(results)
-    # else:
-    #     print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}, {df_embeded_results["image_index"][target_index]}")
-    #     results = find_similar_rows(df_embeded_results, target_index, top_k)
-    #     for idx, similarity in results:
-    #         current = df_embeded_results.iloc[idx]
-    #         print(f"{current["DB_LCTN"]}-{current["ID_VT"]}-{current["HDDN_RVSN"]}, {current["image_index"]}, {similarity}")    
+    results = search_similar_vt_image(
+        query_embedding=df_embeded_results.iloc[target_index, 3:].values.tolist(),
+        tok_k=10, 
+        db_lctn=df_embeded_results.iloc[target_index]["DB_LCTN"],
+        id_vt=df_embeded_results.iloc[target_index]["ID_VT"],
+        hddn_rvsn=df_embeded_results.iloc[target_index]["HDDN_RVSN"]
+    )
+    print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}")
+    print(results)    
 else:
     print("Model checkpoint doesn't exist")

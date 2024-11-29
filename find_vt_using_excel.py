@@ -1,15 +1,5 @@
-import torch
-from torch.utils.data import DataLoader
-from torchvision.transforms import transforms
-from model import VICReg
 import os
-
-# custom dataset 및 목록 관련 라이브러리
-from customdataset import CustomDataset
 import pandas as pd
-from glob import glob
-
-from vector_db import search_similar_vt_image
 from utils import find_similar_rows
 
 import re
@@ -43,23 +33,9 @@ df_embeded_results = pd.concat(dfs, ignore_index=True)
 # 유사한 이미지 찾기 테스트
 target_index = 50
 top_k = 10
-is_using_db = False
 
-
-if is_using_db:
-    df_embeded_results = df_embeded_results.drop('image_index', axis=1)
-    results = search_similar_vt_image(
-        query_embedding=df_embeded_results.iloc[target_index, 3:].values.tolist(),
-        tok_k=10, 
-        db_lctn=df_embeded_results.iloc[target_index]["DB_LCTN"],
-        id_vt=df_embeded_results.iloc[target_index]["ID_VT"],
-        hddn_rvsn=df_embeded_results.iloc[target_index]["HDDN_RVSN"]
-    )
-    print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}")
-    print(results)
-else:
-    print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}, {df_embeded_results["image_index"][target_index]}")
-    results = find_similar_rows(df_embeded_results, target_index, top_k)
-    for idx, similarity in results:
-        current = df_embeded_results.iloc[idx]
-        print(f"{current["DB_LCTN"]}-{current["ID_VT"]}-{current["HDDN_RVSN"]}, {current["image_index"]}, {similarity}")    
+print(f"DB_LCTN : {df_embeded_results.iloc[target_index]["DB_LCTN"]}, ID_VT : {df_embeded_results.iloc[target_index]["ID_VT"]}, HDDN_RVSN : {df_embeded_results.iloc[target_index]["HDDN_RVSN"]}, {df_embeded_results["image_index"][target_index]}")
+results = find_similar_rows(df_embeded_results, target_index, top_k)
+for idx, similarity in results:
+    current = df_embeded_results.iloc[idx]
+    print(f"{current["DB_LCTN"]}-{current["ID_VT"]}-{current["HDDN_RVSN"]}, {current["image_index"]}, {similarity}")    
