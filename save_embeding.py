@@ -126,7 +126,7 @@ if os.path.exists(CHECK_POINT):
                     df_embeded_results = df_embeded_results.drop('index', axis=1)
                     print(f"{i+1}th batch datas are saving...")
                     # Excel 파일로 저장
-                    output_dir = "./"
+                    output_dir = "./embeded_result"
                     output_file = os.path.join(output_dir, f"embeded_result_{i}.xlsx")
                     df_embeded_results.to_excel(output_file, index=False)
                     embeded_results = []
